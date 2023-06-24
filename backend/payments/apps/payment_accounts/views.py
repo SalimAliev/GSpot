@@ -175,18 +175,15 @@ class PayoutHistoryPagination(PageNumberPagination):
     max_page_size = 1000
 
 
-class PayoutHistoryView(viewsets.ViewSet):
+class PayoutHistoryView(viewsets.GenericViewSet, mixins.ListModelMixin):
     serializer_class = serializers.PayoutHistorySerializer
-    pagination_class = PayoutHistoryPagination
 
-    def list(self, request, user_uuid=None):  # noqa: A003
+    def get_queryset(self):
+        user_uuid = self.kwargs.get('user_uuid')
         account = get_object_or_404(Account, user_uuid=user_uuid)
         queryset = BalanceChange.objects.filter(
             account_id=account,
             operation_type=BalanceChange.OperationType.WITHDRAW,
             balanceservicemap__operation_type=BalanceServiceMap.OperationType.PAYOUT,
         )
-        paginator = self.pagination_class()
-        page = paginator.paginate_queryset(queryset, request)
-        serializer = self.serializer_class(page, many=True)
-        return Response(serializer.data)
+        return queryset
