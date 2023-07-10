@@ -1,4 +1,5 @@
 from django.conf import settings
+from django.core.validators import MaxValueValidator, MinValueValidator
 from django.db.models import DecimalField
 from djmoney.models import fields
 from rest_framework import serializers
@@ -36,6 +37,14 @@ class CommissionField(DecimalField):
         default=0,
         **kwargs,
     ):
+        kwargs['validators'] = (
+            MinValueValidator(0, message='Should be positive value'),
+            MaxValueValidator(
+                100,
+                message=f'Should be not greater than {100}',
+            ),
+        )
+
         super().__init__(
             verbose_name=verbose_name,
             name=name,
@@ -62,7 +71,10 @@ class MoneyAmountSerializerField(serializers.DecimalField):
         )
 
     def to_representation(self, obj):
-        value = super().to_representation(obj.amount)
+        try:
+            value = super().to_representation(obj.value)
+        except AttributeError:
+            value = super().to_representation(obj)
         return value
 
     def to_internal_value(self, data):
